@@ -46,7 +46,7 @@ ACC_GC <- c(8140, 8141, 8142, 8143, 8144, 8145, 8147, 8190, 8201, 8210, 8211, 82
 OTH_GC <- c(8001, 8012, 8020, 8021, 8022, 8031, 8032, 8033, 8046, 8070, 8071, 8072, 8082,         #codes voor overige tumoren
             8200, 8430, 8550, 8575, 8980, 9990)
 
-#create new topgraphy variable which includes cardia cancer in the esophageal group
+#create new topgraphy variable which includes junction tumors in the esophageal group
 dataset$topo_temp <- ifelse(dataset$topo_sublok == "C160", "C15", dataset$topo)
 
 #patient who reseived esophageal resection
@@ -131,7 +131,7 @@ dataset_7   <- subset(dataset_6, ct != "1B")          #exclude cT1B
 # step 2: Imputation of MDO dates
 ##################################################################################################################################################################
 
-#create an overview of how many patients had an MDO sceduled
+#create an overview of how many patients had an MDO scheduled
 dataset_7$MDO_JaNee          <- ifelse(is.na(dataset_7$mdo_datum_def), 0, 1)
 dataset_7$diagnose_JaNee     <- ifelse(is.na(dataset_7$incdat), 0, 1)
 mdos                         <- aggregate(dataset_7$MDO_JaNee, by=list(Regio=dataset_7$regio, Incjr = dataset_7$incjr), FUN=sum)
