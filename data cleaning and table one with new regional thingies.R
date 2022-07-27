@@ -130,11 +130,11 @@ dataset_7   <- subset(dataset_6, ct != "1B")          #exclude cT1B
 ##################################################################################################################################################################
 dataset_7$resectie     <- ifelse(is.na(dataset_7$resectie), 0, dataset_7$resectie)         #vervangen van NA door 0 (= geen resectie)
 
-#check regions for EC
+#create an overview of referral patterns for EC resection
 EC_dataset <- subset(dataset_7, topo_new == "C15")
 EC_dataset$fuseerstezkh <- as.character(EC_dataset$fuseerstezkh)
-EC_dataset$resec_jr <- as.numeric(format(EC_dataset$resec_dat, "%Y"))
-overview_EC_resec <- table(EC_dataset$fuszkhresec, EC_dataset$resec_jr)
+# EC_dataset$resec_jr <- as.numeric(format(EC_dataset$resec_dat, "%Y"))
+# overview_EC_resec <- table(EC_dataset$fuszkhresec, EC_dataset$resec_jr)
 
 EC_2015 <- subset(EC_dataset, incjr == 2015)
 EC_2016 <- subset(EC_dataset, incjr == 2016)
@@ -142,15 +142,16 @@ EC_2017 <- subset(EC_dataset, incjr == 2017)
 EC_2018 <- subset(EC_dataset, incjr == 2018)
 EC_2019 <- subset(EC_dataset, incjr == 2019)
 
-EC_referrals  <- vector(mode = "list", length = 5)
+EC_referrals  <- vector(mode = "list", length = 6)
 
 EC_referrals[[1]] <- as.data.frame.matrix(table(EC_2015$fuseerstezkh, EC_2015$fuszkhresec))
 EC_referrals[[2]] <- as.data.frame.matrix(table(EC_2016$fuseerstezkh, EC_2016$fuszkhresec))
 EC_referrals[[3]] <- as.data.frame.matrix(table(EC_2017$fuseerstezkh, EC_2017$fuszkhresec))
 EC_referrals[[4]] <- as.data.frame.matrix(table(EC_2018$fuseerstezkh, EC_2018$fuszkhresec))
 EC_referrals[[5]] <- as.data.frame.matrix(table(EC_2019$fuseerstezkh, EC_2019$fuszkhresec))
+EC_referrals[[6]] <- as.data.frame.matrix(table(EC_dataset$fuseerstezkh, EC_dataset$fuszkhresec))
 
-for (i in 1:5){
+for (i in 1:6){
   EC_referrals[[i]]$referred_patients <- rowSums(EC_referrals[[i]])
   EC_referrals[[i]]$max_referrals <- apply(EC_referrals[[i]][,1:(ncol(EC_referrals[[i]])-1)], MARGIN=1, FUN=max)
   EC_referrals[[i]]$most_referred_to <- colnames(EC_referrals[[i]][,1:(ncol(EC_referrals[[i]])-2)])[apply(EC_referrals[[i]][,1:(ncol(EC_referrals[[i]])-2)],1,which.max)]
@@ -159,47 +160,30 @@ for (i in 1:5){
 }
 
 write.xlsx(EC_referrals, "C:/Users/jba2102.54374/Documents/Onderzoek/Onderzoek effecten eerdere ervaringen/resultaten/final/EC referral of resected patients.xlsx",
-           rowNames = TRUE, colNames = TRUE, overwrite = TRUE, sheetName = c("2015", "2016", "2017", "2018", "2019"))
+           rowNames = TRUE, colNames = TRUE, overwrite = TRUE, sheetName = c("2015", "2016", "2017", "2018", "2019", "overall"))
 
-EC_2015_extended <- left_join(EC_2015, data.frame("referred_from" = EC_referrals[[1]]$referred_from, "most_referred_to" = EC_referrals[[1]]$most_referred_to, "percentage_referred" = EC_referrals[[1]]$percentage_referred), by = c("fuseerstezkh" = "referred_from"))
-EC_2016_extended <- left_join(EC_2016, data.frame("referred_from" = EC_referrals[[2]]$referred_from, "most_referred_to" = EC_referrals[[2]]$most_referred_to, "percentage_referred" = EC_referrals[[2]]$percentage_referred), by = c("fuseerstezkh" = "referred_from"))
-EC_2017_extended <- left_join(EC_2017, data.frame("referred_from" = EC_referrals[[3]]$referred_from, "most_referred_to" = EC_referrals[[3]]$most_referred_to, "percentage_referred" = EC_referrals[[3]]$percentage_referred), by = c("fuseerstezkh" = "referred_from"))
-EC_2018_extended <- left_join(EC_2018, data.frame("referred_from" = EC_referrals[[4]]$referred_from, "most_referred_to" = EC_referrals[[4]]$most_referred_to, "percentage_referred" = EC_referrals[[4]]$percentage_referred), by = c("fuseerstezkh" = "referred_from"))
-EC_2019_extended <- left_join(EC_2019, data.frame("referred_from" = EC_referrals[[5]]$referred_from, "most_referred_to" = EC_referrals[[5]]$most_referred_to, "percentage_referred" = EC_referrals[[5]]$percentage_referred), by = c("fuseerstezkh" = "referred_from"))
-
-
+# assign regions ------------------------------------------------------------------------------------------------------------------------------------------
 # if resectie == 1, region is equal to the resection hospital (fuszkhresec)
-# if resectie == 0, region is equal to the resection hospital to which at least 50% of resected 
-# patients are referred by the first hospital (fuseerstezkh) in that specific year
+# if resectie == 0, region is equal to the resection hospital to which at the majority of resected 
+# patients are referred to by the first hospital (fuseerstezkh) in that specific year (see Excel overview)
 
-EC_2015_extended$region <- ifelse(EC_2015_extended$resectie == 1, EC_2015_extended$fuszkhresec, ifelse((EC_2015_extended$resectie == 0 & EC_2015_extended$percentage_referred > 0.5), EC_2015_extended$most_referred_to, NA))
-EC_2016_extended$region <- ifelse(EC_2016_extended$resectie == 1, EC_2016_extended$fuszkhresec, ifelse((EC_2016_extended$resectie == 0 & EC_2016_extended$percentage_referred > 0.5), EC_2016_extended$most_referred_to, NA))
-EC_2017_extended$region <- ifelse(EC_2017_extended$resectie == 1, EC_2017_extended$fuszkhresec, ifelse((EC_2017_extended$resectie == 0 & EC_2017_extended$percentage_referred > 0.5), EC_2017_extended$most_referred_to, NA))
-EC_2018_extended$region <- ifelse(EC_2018_extended$resectie == 1, EC_2018_extended$fuszkhresec, ifelse((EC_2018_extended$resectie == 0 & EC_2018_extended$percentage_referred > 0.5), EC_2018_extended$most_referred_to, NA))
-EC_2019_extended$region <- ifelse(EC_2019_extended$resectie == 1, EC_2019_extended$fuszkhresec, ifelse((EC_2019_extended$resectie == 0 & EC_2019_extended$percentage_referred > 0.5), EC_2019_extended$most_referred_to, NA))
+verwijstabel_EC <- read.xlsx("C:/Users/jba2102.54374/Documents/Onderzoek/Onderzoek effecten eerdere ervaringen/resultaten/final/overview EC referral of resected patients.xlsx", sheet = "verwijstabel")
 
-EC_list <- list()
-EC_list[[1]] <- EC_2015_extended
-EC_list[[2]] <- EC_2016_extended
-EC_list[[3]] <- EC_2017_extended
-EC_list[[4]] <- EC_2018_extended
-EC_list[[5]] <- EC_2019_extended
+for (i in 1:nrow(EC_dataset)) {
+  if (EC_dataset$resectie[i] == 1) {
+    EC_dataset$region[i] <- EC_dataset$fuszkhresec[i]
+  } else {
+    EC_dataset$region[i] <- verwijstabel_EC$regio_zkh[verwijstabel_EC[,"jaar"] == EC_dataset$incjr[i] & verwijstabel_EC[,"zkh_nr"] == EC_dataset$fuseerstezkh[i]]
+  }
+}
 
-write.xlsx(EC_list, "C:/Users/jba2102.54374/Documents/Onderzoek/Onderzoek effecten eerdere ervaringen/resultaten/final/EC referral after assignment of non-resected patients.xlsx",
-           rowNames = TRUE, colNames = TRUE, overwrite = TRUE, sheetName = c("2015", "2016", "2017", "2018", "2019"))
 
-EC_regional_dataset <- rbind(EC_2015_extended, EC_2016_extended, EC_2017_extended, EC_2018_extended, EC_2019_extended)
-
-#EC_referrals_after_assignment <- as.data.frame.matrix(table(EC_regional_dataset$region, EC_regional_dataset$fuseerstezkh))
-
-#write.xlsx(EC_referrals_after_assignment, "C:/Users/jba2102.54374/Documents/Onderzoek/Onderzoek effecten eerdere ervaringen/resultaten/final/EC referral after region assingment.xlsx",
- #          rowNames = TRUE, colNames = TRUE, overwrite = TRUE)
-
-#check regions for GC--------------------------------------------------------------------------------------------------------------------------
+#-------------------------------------------------------------------------------------------------------------------------------------------------------------
+#create an overview of referral patterns for GC resection
 GC_dataset <- subset(dataset_7, topo_new == "C16")
 GC_dataset$fuseerstezkh <- as.character(GC_dataset$fuseerstezkh)
-GC_dataset$resec_jr <- as.numeric(format(GC_dataset$resec_dat, "%Y"))
-overview_GC_resec <- table(GC_dataset$fuszkhresec, GC_dataset$resec_jr)
+# GC_dataset$resec_jr <- as.numeric(format(GC_dataset$resec_dat, "%Y"))
+# overview_GC_resec <- table(GC_dataset$fuszkhresec, GC_dataset$resec_jr)
 
 GC_2015 <- subset(GC_dataset, incjr == 2015)
 GC_2016 <- subset(GC_dataset, incjr == 2016)
@@ -207,15 +191,16 @@ GC_2017 <- subset(GC_dataset, incjr == 2017)
 GC_2018 <- subset(GC_dataset, incjr == 2018)
 GC_2019 <- subset(GC_dataset, incjr == 2019)
 
-GC_referrals  <- vector(mode = "list", length = 5)
+GC_referrals  <- vector(mode = "list", length = 6)
 
 GC_referrals[[1]] <- as.data.frame.matrix(table(GC_2015$fuseerstezkh, GC_2015$fuszkhresec))
 GC_referrals[[2]] <- as.data.frame.matrix(table(GC_2016$fuseerstezkh, GC_2016$fuszkhresec))
 GC_referrals[[3]] <- as.data.frame.matrix(table(GC_2017$fuseerstezkh, GC_2017$fuszkhresec))
 GC_referrals[[4]] <- as.data.frame.matrix(table(GC_2018$fuseerstezkh, GC_2018$fuszkhresec))
 GC_referrals[[5]] <- as.data.frame.matrix(table(GC_2019$fuseerstezkh, GC_2019$fuszkhresec))
+GC_referrals[[6]] <- as.data.frame.matrix(table(GC_dataset$fuseerstezkh, GC_dataset$fuszkhresec))
 
-for (i in 1:5){
+for (i in 1:6){
   GC_referrals[[i]]$referred_patients <- rowSums(GC_referrals[[i]])
   GC_referrals[[i]]$max_referrals <- apply(GC_referrals[[i]][,1:(ncol(GC_referrals[[i]])-1)], MARGIN=1, FUN=max)
   GC_referrals[[i]]$most_referred_to <- colnames(GC_referrals[[i]][,1:(ncol(GC_referrals[[i]])-2)])[apply(GC_referrals[[i]][,1:(ncol(GC_referrals[[i]])-2)],1,which.max)]
@@ -223,32 +208,117 @@ for (i in 1:5){
   GC_referrals[[i]]$referred_from <- rownames(GC_referrals[[i]])
 }
 
-write.xlsx(GC_referrals, "C:/Users/jba2102.54374/Documents/Onderzoek/Onderzoek effecten eerdere ervaringen/resultaten/final/GC referrals.xlsx",
-           rowNames = TRUE, colNames = TRUE, overwrite = TRUE, sheetName = c("2015", "2016", "2017", "2018", "2019"))
-
-GC_2015_extended <- left_join(GC_2015, data.frame("referred_from" = GC_referrals[[1]]$referred_from, "most_referred_to" = GC_referrals[[1]]$most_referred_to, "percentage_referred" = GC_referrals[[1]]$percentage_referred), by = c("fuseerstezkh" = "referred_from"))
-GC_2016_extended <- left_join(GC_2016, data.frame("referred_from" = GC_referrals[[2]]$referred_from, "most_referred_to" = GC_referrals[[2]]$most_referred_to, "percentage_referred" = GC_referrals[[2]]$percentage_referred), by = c("fuseerstezkh" = "referred_from"))
-GC_2017_extended <- left_join(GC_2017, data.frame("referred_from" = GC_referrals[[3]]$referred_from, "most_referred_to" = GC_referrals[[3]]$most_referred_to, "percentage_referred" = GC_referrals[[3]]$percentage_referred), by = c("fuseerstezkh" = "referred_from"))
-GC_2018_extended <- left_join(GC_2018, data.frame("referred_from" = GC_referrals[[4]]$referred_from, "most_referred_to" = GC_referrals[[4]]$most_referred_to, "percentage_referred" = GC_referrals[[4]]$percentage_referred), by = c("fuseerstezkh" = "referred_from"))
-GC_2019_extended <- left_join(GC_2019, data.frame("referred_from" = GC_referrals[[5]]$referred_from, "most_referred_to" = GC_referrals[[5]]$most_referred_to, "percentage_referred" = GC_referrals[[5]]$percentage_referred), by = c("fuseerstezkh" = "referred_from"))
+write.xlsx(GC_referrals, "C:/Users/jba2102.54374/Documents/Onderzoek/Onderzoek effecten eerdere ervaringen/resultaten/final/GC referral of resected patients.xlsx",
+           rowNames = TRUE, colNames = TRUE, overwrite = TRUE, sheetName = c("2015", "2016", "2017", "2018", "2019", "overall"))
 
 
+
+
+
+#VERWIJSTABEL AFMAKEN :)
+
+
+
+# assign regions ------------------------------------------------------------------------------------------------------------------------------------------
 # if resectie == 1, region is equal to the resection hospital (fuszkhresec)
-# if resectie == 0, region is equal to the resection hospital to which most resected 
-# patients are referred by the first hospital (fuseerstezkh) in that specific year
+# if resectie == 0, region is equal to the resection hospital to which at the majority of resected 
+# patients are referred to by the first hospital (fuseerstezkh) in that specific year (see Excel overview)
 
-GC_2015_extended$region <- ifelse(GC_2015_extended$resectie == 1, GC_2015_extended$fuszkhresec, ifelse((GC_2015_extended$resectie == 0 & GC_2015_extended$percentage_referred > 0.5), GC_2015_extended$most_referred_to, NA))
-GC_2016_extended$region <- ifelse(GC_2016_extended$resectie == 1, GC_2016_extended$fuszkhresec, ifelse((GC_2016_extended$resectie == 0 & GC_2016_extended$percentage_referred > 0.5), GC_2016_extended$most_referred_to, NA))
-GC_2017_extended$region <- ifelse(GC_2017_extended$resectie == 1, GC_2017_extended$fuszkhresec, ifelse((GC_2017_extended$resectie == 0 & GC_2017_extended$percentage_referred > 0.5), GC_2017_extended$most_referred_to, NA))
-GC_2018_extended$region <- ifelse(GC_2018_extended$resectie == 1, GC_2018_extended$fuszkhresec, ifelse((GC_2018_extended$resectie == 0 & GC_2018_extended$percentage_referred > 0.5), GC_2018_extended$most_referred_to, NA))
-GC_2019_extended$region <- ifelse(GC_2019_extended$resectie == 1, GC_2019_extended$fuszkhresec, ifelse((GC_2019_extended$resectie == 0 & GC_2019_extended$percentage_referred > 0.5), GC_2019_extended$most_referred_to, NA))
+verwijstabel_GC <- read.xlsx("C:/Users/jba2102.54374/Documents/Onderzoek/Onderzoek effecten eerdere ervaringen/resultaten/final/overview GC referral of resected patients.xlsx", sheet = "verwijstabel")
 
-GC_regional_dataset <- rbind(GC_2015_extended, GC_2016_extended, GC_2017_extended, GC_2018_extended, GC_2019_extended)
+for (i in 1:nrow(GC_dataset)) {
+  if (GC_dataset$resectie[i] == 1) {
+    GC_dataset$region[i] <- GC_dataset$fuszkhresec[i]
+  } else {
+    GC_dataset$region[i] <- verwijstabel_GC$regio_zkh[verwijstabel_GC[,"jaar"] == GC_dataset$incjr[i] & verwijstabel_GC[,"zkh_nr"] == GC_dataset$fuseerstezkh[i]]
+  }
+}
 
-total_regional_dataset <- rbind(EC_regional_dataset, GC_regional_dataset)
 
-#replace unknown resection hospitals with 'most likely referred to' hospital
-total_regional_dataset$region  <- ifelse((total_regional_dataset$resectie == 1 & is.na(total_regional_dataset$fuszkhresec)), total_regional_dataset$most_referred_to, total_regional_dataset$region)
+
+
+
+
+
+
+# 
+# EC_2015_extended$region <- ifelse(EC_2015_extended$resectie == 1, EC_2015_extended$fuszkhresec, ifelse((EC_2015_extended$resectie == 0 & EC_2015_extended$percentage_referred > 0.5), EC_2015_extended$most_referred_to, NA))
+# EC_2016_extended$region <- ifelse(EC_2016_extended$resectie == 1, EC_2016_extended$fuszkhresec, ifelse((EC_2016_extended$resectie == 0 & EC_2016_extended$percentage_referred > 0.5), EC_2016_extended$most_referred_to, NA))
+# EC_2017_extended$region <- ifelse(EC_2017_extended$resectie == 1, EC_2017_extended$fuszkhresec, ifelse((EC_2017_extended$resectie == 0 & EC_2017_extended$percentage_referred > 0.5), EC_2017_extended$most_referred_to, NA))
+# EC_2018_extended$region <- ifelse(EC_2018_extended$resectie == 1, EC_2018_extended$fuszkhresec, ifelse((EC_2018_extended$resectie == 0 & EC_2018_extended$percentage_referred > 0.5), EC_2018_extended$most_referred_to, NA))
+# EC_2019_extended$region <- ifelse(EC_2019_extended$resectie == 1, EC_2019_extended$fuszkhresec, ifelse((EC_2019_extended$resectie == 0 & EC_2019_extended$percentage_referred > 0.5), EC_2019_extended$most_referred_to, NA))
+# 
+# EC_list <- list()
+# EC_list[[1]] <- EC_2015_extended
+# EC_list[[2]] <- EC_2016_extended
+# EC_list[[3]] <- EC_2017_extended
+# EC_list[[4]] <- EC_2018_extended
+# EC_list[[5]] <- EC_2019_extended
+# 
+# write.xlsx(EC_list, "C:/Users/jba2102.54374/Documents/Onderzoek/Onderzoek effecten eerdere ervaringen/resultaten/final/EC referral after assignment of non-resected patients.xlsx",
+#            rowNames = TRUE, colNames = TRUE, overwrite = TRUE, sheetName = c("2015", "2016", "2017", "2018", "2019"))
+# 
+# EC_regional_dataset <- rbind(EC_2015_extended, EC_2016_extended, EC_2017_extended, EC_2018_extended, EC_2019_extended)
+# 
+# #EC_referrals_after_assignment <- as.data.frame.matrix(table(EC_regional_dataset$region, EC_regional_dataset$fuseerstezkh))
+# 
+# #write.xlsx(EC_referrals_after_assignment, "C:/Users/jba2102.54374/Documents/Onderzoek/Onderzoek effecten eerdere ervaringen/resultaten/final/EC referral after region assingment.xlsx",
+#  #          rowNames = TRUE, colNames = TRUE, overwrite = TRUE)
+# 
+# #check regions for GC--------------------------------------------------------------------------------------------------------------------------
+# GC_dataset <- subset(dataset_7, topo_new == "C16")
+# GC_dataset$fuseerstezkh <- as.character(GC_dataset$fuseerstezkh)
+# GC_dataset$resec_jr <- as.numeric(format(GC_dataset$resec_dat, "%Y"))
+# overview_GC_resec <- table(GC_dataset$fuszkhresec, GC_dataset$resec_jr)
+# 
+# GC_2015 <- subset(GC_dataset, incjr == 2015)
+# GC_2016 <- subset(GC_dataset, incjr == 2016)
+# GC_2017 <- subset(GC_dataset, incjr == 2017)
+# GC_2018 <- subset(GC_dataset, incjr == 2018)
+# GC_2019 <- subset(GC_dataset, incjr == 2019)
+# 
+# GC_referrals  <- vector(mode = "list", length = 5)
+# 
+# GC_referrals[[1]] <- as.data.frame.matrix(table(GC_2015$fuseerstezkh, GC_2015$fuszkhresec))
+# GC_referrals[[2]] <- as.data.frame.matrix(table(GC_2016$fuseerstezkh, GC_2016$fuszkhresec))
+# GC_referrals[[3]] <- as.data.frame.matrix(table(GC_2017$fuseerstezkh, GC_2017$fuszkhresec))
+# GC_referrals[[4]] <- as.data.frame.matrix(table(GC_2018$fuseerstezkh, GC_2018$fuszkhresec))
+# GC_referrals[[5]] <- as.data.frame.matrix(table(GC_2019$fuseerstezkh, GC_2019$fuszkhresec))
+# 
+# for (i in 1:5){
+#   GC_referrals[[i]]$referred_patients <- rowSums(GC_referrals[[i]])
+#   GC_referrals[[i]]$max_referrals <- apply(GC_referrals[[i]][,1:(ncol(GC_referrals[[i]])-1)], MARGIN=1, FUN=max)
+#   GC_referrals[[i]]$most_referred_to <- colnames(GC_referrals[[i]][,1:(ncol(GC_referrals[[i]])-2)])[apply(GC_referrals[[i]][,1:(ncol(GC_referrals[[i]])-2)],1,which.max)]
+#   GC_referrals[[i]]$percentage_referred <- GC_referrals[[i]]$max_referrals / GC_referrals[[i]]$referred_patients
+#   GC_referrals[[i]]$referred_from <- rownames(GC_referrals[[i]])
+# }
+# 
+# write.xlsx(GC_referrals, "C:/Users/jba2102.54374/Documents/Onderzoek/Onderzoek effecten eerdere ervaringen/resultaten/final/GC referrals.xlsx",
+#            rowNames = TRUE, colNames = TRUE, overwrite = TRUE, sheetName = c("2015", "2016", "2017", "2018", "2019"))
+# 
+# GC_2015_extended <- left_join(GC_2015, data.frame("referred_from" = GC_referrals[[1]]$referred_from, "most_referred_to" = GC_referrals[[1]]$most_referred_to, "percentage_referred" = GC_referrals[[1]]$percentage_referred), by = c("fuseerstezkh" = "referred_from"))
+# GC_2016_extended <- left_join(GC_2016, data.frame("referred_from" = GC_referrals[[2]]$referred_from, "most_referred_to" = GC_referrals[[2]]$most_referred_to, "percentage_referred" = GC_referrals[[2]]$percentage_referred), by = c("fuseerstezkh" = "referred_from"))
+# GC_2017_extended <- left_join(GC_2017, data.frame("referred_from" = GC_referrals[[3]]$referred_from, "most_referred_to" = GC_referrals[[3]]$most_referred_to, "percentage_referred" = GC_referrals[[3]]$percentage_referred), by = c("fuseerstezkh" = "referred_from"))
+# GC_2018_extended <- left_join(GC_2018, data.frame("referred_from" = GC_referrals[[4]]$referred_from, "most_referred_to" = GC_referrals[[4]]$most_referred_to, "percentage_referred" = GC_referrals[[4]]$percentage_referred), by = c("fuseerstezkh" = "referred_from"))
+# GC_2019_extended <- left_join(GC_2019, data.frame("referred_from" = GC_referrals[[5]]$referred_from, "most_referred_to" = GC_referrals[[5]]$most_referred_to, "percentage_referred" = GC_referrals[[5]]$percentage_referred), by = c("fuseerstezkh" = "referred_from"))
+# 
+# 
+# # if resectie == 1, region is equal to the resection hospital (fuszkhresec)
+# # if resectie == 0, region is equal to the resection hospital to which most resected 
+# # patients are referred by the first hospital (fuseerstezkh) in that specific year
+# 
+# GC_2015_extended$region <- ifelse(GC_2015_extended$resectie == 1, GC_2015_extended$fuszkhresec, ifelse((GC_2015_extended$resectie == 0 & GC_2015_extended$percentage_referred > 0.5), GC_2015_extended$most_referred_to, NA))
+# GC_2016_extended$region <- ifelse(GC_2016_extended$resectie == 1, GC_2016_extended$fuszkhresec, ifelse((GC_2016_extended$resectie == 0 & GC_2016_extended$percentage_referred > 0.5), GC_2016_extended$most_referred_to, NA))
+# GC_2017_extended$region <- ifelse(GC_2017_extended$resectie == 1, GC_2017_extended$fuszkhresec, ifelse((GC_2017_extended$resectie == 0 & GC_2017_extended$percentage_referred > 0.5), GC_2017_extended$most_referred_to, NA))
+# GC_2018_extended$region <- ifelse(GC_2018_extended$resectie == 1, GC_2018_extended$fuszkhresec, ifelse((GC_2018_extended$resectie == 0 & GC_2018_extended$percentage_referred > 0.5), GC_2018_extended$most_referred_to, NA))
+# GC_2019_extended$region <- ifelse(GC_2019_extended$resectie == 1, GC_2019_extended$fuszkhresec, ifelse((GC_2019_extended$resectie == 0 & GC_2019_extended$percentage_referred > 0.5), GC_2019_extended$most_referred_to, NA))
+# 
+# GC_regional_dataset <- rbind(GC_2015_extended, GC_2016_extended, GC_2017_extended, GC_2018_extended, GC_2019_extended)
+# 
+# total_regional_dataset <- rbind(EC_regional_dataset, GC_regional_dataset)
+# 
+# #replace unknown resection hospitals with 'most likely referred to' hospital
+# total_regional_dataset$region  <- ifelse((total_regional_dataset$resectie == 1 & is.na(total_regional_dataset$fuszkhresec)), total_regional_dataset$most_referred_to, total_regional_dataset$region)
 
 
 
