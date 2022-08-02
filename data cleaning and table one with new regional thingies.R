@@ -3,7 +3,7 @@
 # number/percentage of events for all regions
 
 # created: 17-08-2021
-# updated: 18-08-2021
+# updated: 02-08-2022
 # owner: Jeanne Bakx
 
 ##################################################################################################################################################################
@@ -169,14 +169,16 @@ write.xlsx(EC_referrals, "C:/Users/jba2102.54374/Documents/Onderzoek/Onderzoek e
 
 verwijstabel_EC <- read.xlsx("C:/Users/jba2102.54374/Documents/Onderzoek/Onderzoek effecten eerdere ervaringen/resultaten/final/overview EC referral of resected patients.xlsx", sheet = "verwijstabel")
 
+
 for (i in 1:nrow(EC_dataset)) {
-  if (EC_dataset$resectie[i] == 1) {
-    EC_dataset$region[i] <- EC_dataset$fuszkhresec[i]
+  if (EC_dataset$resectie[i] == 1 && EC_dataset$fuszkhresec[i] %in% verwijstabel_EC[,"zkh_nr"]) {
+    EC_dataset$region[i] <- verwijstabel_EC$regio_nr[verwijstabel_EC[,"jaar"] == EC_dataset$incjr[i] & verwijstabel_EC[,"zkh_nr"] == EC_dataset$fuszkhresec[i]]
+  } else if (EC_dataset$resectie[i] == 0 && EC_dataset$fuseerstezkh[i] %in% verwijstabel_EC[,"zkh_nr"]){
+    EC_dataset$region[i] <- verwijstabel_EC$regio_nr[verwijstabel_EC[,"jaar"] == EC_dataset$incjr[i] & verwijstabel_EC[,"zkh_nr"] == EC_dataset$fuseerstezkh[i]]
   } else {
-    EC_dataset$region[i] <- verwijstabel_EC$regio_zkh[verwijstabel_EC[,"jaar"] == EC_dataset$incjr[i] & verwijstabel_EC[,"zkh_nr"] == EC_dataset$fuseerstezkh[i]]
+    EC_dataset$region[i] <- NA
   }
 }
-
 
 #-------------------------------------------------------------------------------------------------------------------------------------------------------------
 #create an overview of referral patterns for GC resection
@@ -211,14 +213,6 @@ for (i in 1:6){
 write.xlsx(GC_referrals, "C:/Users/jba2102.54374/Documents/Onderzoek/Onderzoek effecten eerdere ervaringen/resultaten/final/GC referral of resected patients.xlsx",
            rowNames = TRUE, colNames = TRUE, overwrite = TRUE, sheetName = c("2015", "2016", "2017", "2018", "2019", "overall"))
 
-
-
-
-
-#VERWIJSTABEL AFMAKEN :)
-
-
-
 # assign regions ------------------------------------------------------------------------------------------------------------------------------------------
 # if resectie == 1, region is equal to the resection hospital (fuszkhresec)
 # if resectie == 0, region is equal to the resection hospital to which at the majority of resected 
@@ -227,144 +221,53 @@ write.xlsx(GC_referrals, "C:/Users/jba2102.54374/Documents/Onderzoek/Onderzoek e
 verwijstabel_GC <- read.xlsx("C:/Users/jba2102.54374/Documents/Onderzoek/Onderzoek effecten eerdere ervaringen/resultaten/final/overview GC referral of resected patients.xlsx", sheet = "verwijstabel")
 
 for (i in 1:nrow(GC_dataset)) {
-  if (GC_dataset$resectie[i] == 1) {
-    GC_dataset$region[i] <- GC_dataset$fuszkhresec[i]
+  if (GC_dataset$resectie[i] == 1 && GC_dataset$fuszkhresec[i] %in% verwijstabel_GC[,"zkh_nr"]) {
+    GC_dataset$region[i] <- verwijstabel_GC$regio_nr[verwijstabel_GC[,"jaar"] == GC_dataset$incjr[i] & verwijstabel_GC[,"zkh_nr"] == GC_dataset$fuszkhresec[i]]
+  } else if (GC_dataset$resectie[i] == 0 && GC_dataset$fuseerstezkh[i] %in% verwijstabel_GC[,"zkh_nr"]){
+    GC_dataset$region[i] <- verwijstabel_GC$regio_nr[verwijstabel_GC[,"jaar"] == GC_dataset$incjr[i] & verwijstabel_GC[,"zkh_nr"] == GC_dataset$fuseerstezkh[i]]
   } else {
-    GC_dataset$region[i] <- verwijstabel_GC$regio_zkh[verwijstabel_GC[,"jaar"] == GC_dataset$incjr[i] & verwijstabel_GC[,"zkh_nr"] == GC_dataset$fuseerstezkh[i]]
+    GC_dataset$region[i] <- NA
   }
 }
 
+#remove patients from unknown, foreign or LUMC/AVL regions
+combined_dataset <- rbind(EC_dataset, GC_dataset)
+combined_dataset_1 <- subset(combined_dataset,   !is.na(region)) #(n = 67 without region)
+combined_dataset_2 <- subset(combined_dataset_1, region != 20)   #(n = 701 from region LUMC)
+combined_dataset_3 <- subset(combined_dataset_2, region != 16)   #(n = 517 from region AvL)
+combined_dataset_4 <- subset(combined_dataset_3, region != 99)   #(n = 74 from foreign hospitals)
 
+#remove patients form regions with less than 100 resections done in 2015-2019
+temp_table <- table(combined_dataset_4$region, combined_dataset_4$resectie)[,2]<100
 
-
-
-
-
-
-# 
-# EC_2015_extended$region <- ifelse(EC_2015_extended$resectie == 1, EC_2015_extended$fuszkhresec, ifelse((EC_2015_extended$resectie == 0 & EC_2015_extended$percentage_referred > 0.5), EC_2015_extended$most_referred_to, NA))
-# EC_2016_extended$region <- ifelse(EC_2016_extended$resectie == 1, EC_2016_extended$fuszkhresec, ifelse((EC_2016_extended$resectie == 0 & EC_2016_extended$percentage_referred > 0.5), EC_2016_extended$most_referred_to, NA))
-# EC_2017_extended$region <- ifelse(EC_2017_extended$resectie == 1, EC_2017_extended$fuszkhresec, ifelse((EC_2017_extended$resectie == 0 & EC_2017_extended$percentage_referred > 0.5), EC_2017_extended$most_referred_to, NA))
-# EC_2018_extended$region <- ifelse(EC_2018_extended$resectie == 1, EC_2018_extended$fuszkhresec, ifelse((EC_2018_extended$resectie == 0 & EC_2018_extended$percentage_referred > 0.5), EC_2018_extended$most_referred_to, NA))
-# EC_2019_extended$region <- ifelse(EC_2019_extended$resectie == 1, EC_2019_extended$fuszkhresec, ifelse((EC_2019_extended$resectie == 0 & EC_2019_extended$percentage_referred > 0.5), EC_2019_extended$most_referred_to, NA))
-# 
-# EC_list <- list()
-# EC_list[[1]] <- EC_2015_extended
-# EC_list[[2]] <- EC_2016_extended
-# EC_list[[3]] <- EC_2017_extended
-# EC_list[[4]] <- EC_2018_extended
-# EC_list[[5]] <- EC_2019_extended
-# 
-# write.xlsx(EC_list, "C:/Users/jba2102.54374/Documents/Onderzoek/Onderzoek effecten eerdere ervaringen/resultaten/final/EC referral after assignment of non-resected patients.xlsx",
-#            rowNames = TRUE, colNames = TRUE, overwrite = TRUE, sheetName = c("2015", "2016", "2017", "2018", "2019"))
-# 
-# EC_regional_dataset <- rbind(EC_2015_extended, EC_2016_extended, EC_2017_extended, EC_2018_extended, EC_2019_extended)
-# 
-# #EC_referrals_after_assignment <- as.data.frame.matrix(table(EC_regional_dataset$region, EC_regional_dataset$fuseerstezkh))
-# 
-# #write.xlsx(EC_referrals_after_assignment, "C:/Users/jba2102.54374/Documents/Onderzoek/Onderzoek effecten eerdere ervaringen/resultaten/final/EC referral after region assingment.xlsx",
-#  #          rowNames = TRUE, colNames = TRUE, overwrite = TRUE)
-# 
-# #check regions for GC--------------------------------------------------------------------------------------------------------------------------
-# GC_dataset <- subset(dataset_7, topo_new == "C16")
-# GC_dataset$fuseerstezkh <- as.character(GC_dataset$fuseerstezkh)
-# GC_dataset$resec_jr <- as.numeric(format(GC_dataset$resec_dat, "%Y"))
-# overview_GC_resec <- table(GC_dataset$fuszkhresec, GC_dataset$resec_jr)
-# 
-# GC_2015 <- subset(GC_dataset, incjr == 2015)
-# GC_2016 <- subset(GC_dataset, incjr == 2016)
-# GC_2017 <- subset(GC_dataset, incjr == 2017)
-# GC_2018 <- subset(GC_dataset, incjr == 2018)
-# GC_2019 <- subset(GC_dataset, incjr == 2019)
-# 
-# GC_referrals  <- vector(mode = "list", length = 5)
-# 
-# GC_referrals[[1]] <- as.data.frame.matrix(table(GC_2015$fuseerstezkh, GC_2015$fuszkhresec))
-# GC_referrals[[2]] <- as.data.frame.matrix(table(GC_2016$fuseerstezkh, GC_2016$fuszkhresec))
-# GC_referrals[[3]] <- as.data.frame.matrix(table(GC_2017$fuseerstezkh, GC_2017$fuszkhresec))
-# GC_referrals[[4]] <- as.data.frame.matrix(table(GC_2018$fuseerstezkh, GC_2018$fuszkhresec))
-# GC_referrals[[5]] <- as.data.frame.matrix(table(GC_2019$fuseerstezkh, GC_2019$fuszkhresec))
-# 
-# for (i in 1:5){
-#   GC_referrals[[i]]$referred_patients <- rowSums(GC_referrals[[i]])
-#   GC_referrals[[i]]$max_referrals <- apply(GC_referrals[[i]][,1:(ncol(GC_referrals[[i]])-1)], MARGIN=1, FUN=max)
-#   GC_referrals[[i]]$most_referred_to <- colnames(GC_referrals[[i]][,1:(ncol(GC_referrals[[i]])-2)])[apply(GC_referrals[[i]][,1:(ncol(GC_referrals[[i]])-2)],1,which.max)]
-#   GC_referrals[[i]]$percentage_referred <- GC_referrals[[i]]$max_referrals / GC_referrals[[i]]$referred_patients
-#   GC_referrals[[i]]$referred_from <- rownames(GC_referrals[[i]])
-# }
-# 
-# write.xlsx(GC_referrals, "C:/Users/jba2102.54374/Documents/Onderzoek/Onderzoek effecten eerdere ervaringen/resultaten/final/GC referrals.xlsx",
-#            rowNames = TRUE, colNames = TRUE, overwrite = TRUE, sheetName = c("2015", "2016", "2017", "2018", "2019"))
-# 
-# GC_2015_extended <- left_join(GC_2015, data.frame("referred_from" = GC_referrals[[1]]$referred_from, "most_referred_to" = GC_referrals[[1]]$most_referred_to, "percentage_referred" = GC_referrals[[1]]$percentage_referred), by = c("fuseerstezkh" = "referred_from"))
-# GC_2016_extended <- left_join(GC_2016, data.frame("referred_from" = GC_referrals[[2]]$referred_from, "most_referred_to" = GC_referrals[[2]]$most_referred_to, "percentage_referred" = GC_referrals[[2]]$percentage_referred), by = c("fuseerstezkh" = "referred_from"))
-# GC_2017_extended <- left_join(GC_2017, data.frame("referred_from" = GC_referrals[[3]]$referred_from, "most_referred_to" = GC_referrals[[3]]$most_referred_to, "percentage_referred" = GC_referrals[[3]]$percentage_referred), by = c("fuseerstezkh" = "referred_from"))
-# GC_2018_extended <- left_join(GC_2018, data.frame("referred_from" = GC_referrals[[4]]$referred_from, "most_referred_to" = GC_referrals[[4]]$most_referred_to, "percentage_referred" = GC_referrals[[4]]$percentage_referred), by = c("fuseerstezkh" = "referred_from"))
-# GC_2019_extended <- left_join(GC_2019, data.frame("referred_from" = GC_referrals[[5]]$referred_from, "most_referred_to" = GC_referrals[[5]]$most_referred_to, "percentage_referred" = GC_referrals[[5]]$percentage_referred), by = c("fuseerstezkh" = "referred_from"))
-# 
-# 
-# # if resectie == 1, region is equal to the resection hospital (fuszkhresec)
-# # if resectie == 0, region is equal to the resection hospital to which most resected 
-# # patients are referred by the first hospital (fuseerstezkh) in that specific year
-# 
-# GC_2015_extended$region <- ifelse(GC_2015_extended$resectie == 1, GC_2015_extended$fuszkhresec, ifelse((GC_2015_extended$resectie == 0 & GC_2015_extended$percentage_referred > 0.5), GC_2015_extended$most_referred_to, NA))
-# GC_2016_extended$region <- ifelse(GC_2016_extended$resectie == 1, GC_2016_extended$fuszkhresec, ifelse((GC_2016_extended$resectie == 0 & GC_2016_extended$percentage_referred > 0.5), GC_2016_extended$most_referred_to, NA))
-# GC_2017_extended$region <- ifelse(GC_2017_extended$resectie == 1, GC_2017_extended$fuszkhresec, ifelse((GC_2017_extended$resectie == 0 & GC_2017_extended$percentage_referred > 0.5), GC_2017_extended$most_referred_to, NA))
-# GC_2018_extended$region <- ifelse(GC_2018_extended$resectie == 1, GC_2018_extended$fuszkhresec, ifelse((GC_2018_extended$resectie == 0 & GC_2018_extended$percentage_referred > 0.5), GC_2018_extended$most_referred_to, NA))
-# GC_2019_extended$region <- ifelse(GC_2019_extended$resectie == 1, GC_2019_extended$fuszkhresec, ifelse((GC_2019_extended$resectie == 0 & GC_2019_extended$percentage_referred > 0.5), GC_2019_extended$most_referred_to, NA))
-# 
-# GC_regional_dataset <- rbind(GC_2015_extended, GC_2016_extended, GC_2017_extended, GC_2018_extended, GC_2019_extended)
-# 
-# total_regional_dataset <- rbind(EC_regional_dataset, GC_regional_dataset)
-# 
-# #replace unknown resection hospitals with 'most likely referred to' hospital
-# total_regional_dataset$region  <- ifelse((total_regional_dataset$resectie == 1 & is.na(total_regional_dataset$fuszkhresec)), total_regional_dataset$most_referred_to, total_regional_dataset$region)
-
-
-
-#Add region names
-
-
-
-#Remove patients from LUMC, AVL, foreign hospital and unknown hospital
-regional_dataset <- subset(total_regional_dataset, !is.na(region))
-
-# dataset_2   <- subset(dataset_1, !is.na(regio))       #remove patients without regio
-# dataset_3   <- subset(dataset_2, regio != 17)         #remove patients from AvL  (= 316)
-# dataset_4   <- subset(dataset_3, regio != 18)         #remove patients from LUMC (= 384)
-# dataset_5   <- subset(dataset_4, regio != buitenland)         #remove patients from foreign hospitals (= 998)
-
-
-temp <- cbind(regional_dataset1$resectie, regional_dataset1$resec_zkh, regional_dataset1$fuszkhresec, regional_dataset1$fuseerstezkh, regional_dataset1$most_referred_to, regional_dataset1$percentage_referred)
-
-
-
-
+#this table shows that regions 17, 18, 19, 21, 22, 23 and 24 have less than 100 resections
+combined_dataset_5 <- subset(combined_dataset_4, !(region %in% c(17, 18, 19, 21, 22, 23, 24)))   #(n = 681 from small regions)
+combined_dataset_5$regio <- combined_dataset_5$region
 
 ##################################################################################################################################################################
 # step 2: Imputation of MDO dates
 ##################################################################################################################################################################
 
 #create an overview of how many patients had an MDO scheduled
-dataset_7$MDO_JaNee          <- ifelse(is.na(dataset_7$mdo_datum_def), 0, 1)
-dataset_7$diagnose_JaNee     <- ifelse(is.na(dataset_7$incdat), 0, 1)
-mdos                         <- aggregate(dataset_7$MDO_JaNee, by=list(Regio=dataset_7$regio, Incjr = dataset_7$incjr), FUN=sum)
-diags                        <- aggregate(dataset_7$diagnose_JaNee, by=list(Regio=dataset_7$regio, Incjr = dataset_7$incjr), FUN=sum)
-perc_mdo                     <- by(as.numeric(dataset_7$MDO_JaNee), dataset_7$regio, mean)            #percentage per regio aantal patienten met MDO
+combined_dataset_5$MDO_JaNee          <- ifelse(is.na(combined_dataset_5$mdo_datum_def), 0, 1)
+combined_dataset_5$diagnose_JaNee     <- ifelse(is.na(combined_dataset_5$incdat), 0, 1)
+mdos                         <- aggregate(combined_dataset_5$MDO_JaNee, by=list(Regio=combined_dataset_5$regio, Incjr = combined_dataset_5$incjr), FUN=sum)
+diags                        <- aggregate(combined_dataset_5$diagnose_JaNee, by=list(Regio=combined_dataset_5$regio, Incjr = combined_dataset_5$incjr), FUN=sum)
+perc_mdo                     <- by(as.numeric(combined_dataset_5$MDO_JaNee), combined_dataset_5$regio, mean)            #percentage per regio aantal patienten met MDO
 
 
 # create a histogram for the distribution in time between MDO date and start treatment
-dataset_7$beslisdagen <- dataset_7$startbeh - dataset_7$mdo_datum_def
-hist(as.numeric(dataset_7$beslisdagen), breaks =  seq(0, 10000, by=5) , xlim = range(0, 100))
-verdeling_beslisdagen_per_regio <- by(as.numeric(dataset_7$beslisdagen), dataset_7$regio, summary)
+combined_dataset_5$beslisdagen <- combined_dataset_5$startbeh - combined_dataset_5$mdo_datum_def
+hist(as.numeric(combined_dataset_5$beslisdagen), breaks =  seq(0, 10000, by=5) , xlim = range(0, 100))
+verdeling_beslisdagen_per_regio <- by(as.numeric(combined_dataset_5$beslisdagen), combined_dataset_5$regio, summary)
 
 # create a histogram for the distribution in time between incidence date and MDO date
-dataset_7$diag_mdo <- as.Date(dataset_7$mdo_datum_def)-as.Date(dataset_7$incdat)
-hist(as.numeric(dataset_7$diag_mdo), breaks =  seq(-10000, 10000, by=5) , xlim = range(-50, 100))
-verdeling_diagnosedagen_per_regio <- by(as.numeric(dataset_7$diag_mdo), dataset_7$regio, summary)
+combined_dataset_5$diag_mdo <- as.Date(combined_dataset_5$mdo_datum_def)-as.Date(combined_dataset_5$incdat)
+hist(as.numeric(combined_dataset_5$diag_mdo), breaks =  seq(-10000, 10000, by=5) , xlim = range(-50, 100))
+verdeling_diagnosedagen_per_regio <- by(as.numeric(combined_dataset_5$diag_mdo), combined_dataset_5$regio, summary)
 
 # find the median time between MDO date and start treatment for each region separately
-data_temp <- split(dataset_7, f = dataset_7$regio)                   
+data_temp <- split(combined_dataset_5, f = combined_dataset_5$regio)                   
 dagen_mdo_start   <- vector(mode = "numeric", length = length(data_temp))
 dagen_incl_mdo    <- vector(mode = "numeric", length = length(data_temp))
 
@@ -401,17 +304,6 @@ dataset_regio$IC_duur      <- dataset_regio$ic_duur1_adj + dataset_regio$ic_duur
 #if ICU stay is unknown (999), than impute with median (=0 dagen)
 dataset_regio$IC_duur      <- ifelse(dataset_regio$IC_duur == 999, median(dplyr::filter(dataset_regio, resectie == 1)$IC_duur), dataset_regio$IC_duur) 
 dataset_regio$duur_opname  <- ifelse(is.na(dataset_regio$duur_opname), 0, dataset_regio$duur_opname)   #adjusted opname duur
-
-# #add variables concerning recurrences
-# dataset_regio$recur_6mnd       <- ifelse((dataset_regio$eerste_meta - dataset_regio$resec_dat) <= 182 & (dataset_regio$eerste_meta - dataset_regio$resec_dat) >= 7, 1, 0)                                                         #recurrence binnen 6 maanden na resectie
-# #dataset_regio$recur_6mnd       <- ifelse(dataset_regio$operatie_type == "exploratief" | dataset_regio$operatie_type == "SANO", 0, dataset_regio$recur_6mnd)             #recurrence geldt alleen na (endoscopische) resectie
-# dataset_regio$recur_6mnd       <- ifelse(is.na(dataset_regio$recur_6mnd), 0, dataset_regio$recur_6mnd)            
-# 
-# dataset_regio$recur_12mnd      <- ifelse((dataset_regio$eerste_meta - dataset_regio$resec_dat) <= 365 & (dataset_regio$eerste_meta - dataset_regio$resec_dat) >= 7, 1, 0)                                                         #recurrence binnen 12 maanden na resectie
-# #dataset_regio$recur_12mnd      <- ifelse(dataset_regio$operatie_type == "exploratief" | dataset_regio$operatie_type == "SANO", 0, dataset_regio$recur_12mnd)            #recurrence geldt alleen na (endoscopische) resectie
-# dataset_regio$recur_12mnd      <- ifelse(is.na(dataset_regio$recur_12mnd), 0, dataset_regio$recur_12mnd)            
-# 
-# check_recurrence <- data.frame(dataset_regio$rn, dataset_regio$recur_12mnd, dataset_regio$resec_dat, dataset_regio$eerste_meta)
 
 #create variables for 30 and 90 day mortality
 dataset_regio$ovltijd <- dataset_regio$ovldat - dataset_regio$resec_dat
@@ -509,14 +401,14 @@ dataset_regio$pulmonaal_datum <- as.Date(dataset_regio$pulmonaal_datum, origin =
 # hist(as.numeric(resected_patients$IC_duur), breaks =  seq(0, 1000, by=1) , xlim = range(0, 10))
 #IC_duur_grens <- round(quantile(resected_patients$IC_duur, probs = c(0.95), na.rm = TRUE)) #longer than 12 days = abnormal
 #dataset_regio$IC_opname_lang <- ifelse(dataset_regio$IC_duur > IC_duur_grens, 1, 0)
-dataset_regio$IC_opname_lang <- ifelse(dataset_regio$topo_new == "C15" & dataset_regio$IC_duur >= 13, 1, 0)
-dataset_regio$IC_opname_lang <- ifelse(dataset_regio$topo_new == "C16" & dataset_regio$IC_duur >= 4, 1, dataset_regio$IC_opname_lang)
+# dataset_regio$IC_opname_lang <- ifelse(dataset_regio$topo_new == "C15" & dataset_regio$IC_duur >= 13, 1, 0)
+# dataset_regio$IC_opname_lang <- ifelse(dataset_regio$topo_new == "C16" & dataset_regio$IC_duur >= 4, 1, dataset_regio$IC_opname_lang)
 
 # hist(as.numeric(resected_patients$duur_opname), breaks =  seq(0, 1000, by=1) , xlim = range(0, 50))
 #opname_duur_grens <- round(quantile(resected_patients$duur_opname, probs = c(0.95), na.rm = TRUE)) #longer than 45 days = abnormal
 #dataset_regio$opname_lang <- ifelse(dataset_regio$duur_opname > opname_duur_grens, 1, 0)
-dataset_regio$opname_lang <- ifelse(dataset_regio$topo_new == "C15" & dataset_regio$duur_opname >= 50, 1, 0)
-dataset_regio$opname_lang <- ifelse(dataset_regio$topo_new == "C16" & dataset_regio$duur_opname >= 33, 1, dataset_regio$IC_opname_lang)
+# dataset_regio$opname_lang <- ifelse(dataset_regio$topo_new == "C15" & dataset_regio$duur_opname >= 50, 1, 0)
+# dataset_regio$opname_lang <- ifelse(dataset_regio$topo_new == "C16" & dataset_regio$duur_opname >= 33, 1, dataset_regio$IC_opname_lang)
 
 dataset_regio$opname_21 <- ifelse(dataset_regio$duur_opname > 21 | dataset_regio$IC_duur > 21, 1, 0)
 dataset_regio$opname_21_datum <- ifelse(dataset_regio$opname_21 == 1, dataset_regio$resec_dat + 21, NA)
@@ -549,10 +441,6 @@ for (i in 1:length(data_list)) {
   data_list[[i]]$datum_eerste_compl1           <- as.Date(data_list[[i]]$datum_eerste_compl1, origin = "1970-01-01")
 }
 
-# dataset_clean <- do.call("rbind", data_list)
-# check_complications <- data.frame(dataset_clean$cardiaal, dataset_clean$pulmonaal, dataset_clean$naadlekkage, dataset_clean$opname_21, dataset_clean$mort30,
-#                                   dataset_clean$resec_dat, dataset_clean$datum_eerste_compl, dataset_clean$cardiaal_datum, dataset_clean$pulmonaal_datum, 
-#                                   dataset_clean$naadlekkage_datum, dataset_clean$opname_21_datum, dataset_clean$ovldat)
 
 #Only events within 30 days after resection are taken into account (geldt met name voor ovldat)
 for (i in 1:length(data_list)) {
@@ -566,7 +454,7 @@ for (i in 1:length(data_list)) {
 }
 
 dataset_clean <- do.call("rbind", data_list)
-check_complications2 <- data.frame(dataset_clean$cardiaal, dataset_clean$pulmonaal, dataset_clean$naadlekkage, dataset_clean$opname_21, dataset_clean$mort30,
+check_complications <- data.frame(dataset_clean$cardiaal, dataset_clean$pulmonaal, dataset_clean$naadlekkage, dataset_clean$opname_21, dataset_clean$mort30,
                                    dataset_clean$resec_dat, dataset_clean$datum_eerste_compl, dataset_clean$cardiaal_datum, dataset_clean$pulmonaal_datum, 
                                   dataset_clean$naadlekkage_datum, dataset_clean$opname_21_datum, dataset_clean$ovldat)
 
